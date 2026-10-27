@@ -104,6 +104,21 @@ jobs:
                 owner: context.repo.owner, repo: context.repo.repo, title, body});
             }
 
+  # 2026-10-27: GitHub disables a public repo's schedule after 60 days with no
+  # pushes, and this repo only gets pushed when the scraper code changes.
+  # Re-enabling the workflow through the API counts as activity and resets that
+  # clock. Its own job, so a failed scrape still keeps the schedule alive.
+  keepalive:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    steps:
+      - name: Re-enable this workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/scrape.yml/enable"
+
   deploy:
     needs: scrape
     runs-on: ubuntu-latest
